@@ -2,86 +2,93 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Linq;
+using GraduationTracker;
+using GraduationTracker.Models;
+using GraduationTracker.Repositories;
 
 namespace GraduationTracker.Tests.Unit
 {
     [TestClass]
     public class GraduationTrackerTests
     {
-        [TestMethod]
-        public void TestHasCredits()
+        //REFACTORING MAKING SETUP METHOD
+
+        GraduationTracker _tracker;
+        Diploma[] _diploma;
+        Student[] _students;
+        [TestInitialize]
+        public void Setup()
         {
-            var tracker = new GraduationTracker();
-
-            var diploma = new Diploma
-            {
-                Id = 1,
-                Credits = 4,
-                Requirements = new int[] { 100, 102, 103, 104 }
-            };
-
-            var students = new[]
-            {
-               new Student
-               {
-                   Id = 1,
-                   Courses = new Course[]
-                   {
-                        new Course{Id = 1, Name = "Math", Mark=95 },
-                        new Course{Id = 2, Name = "Science", Mark=95 },
-                        new Course{Id = 3, Name = "Literature", Mark=95 },
-                        new Course{Id = 4, Name = "Physichal Education", Mark=95 }
-                   }
-               },
-               new Student
-               {
-                   Id = 2,
-                   Courses = new Course[]
-                   {
-                        new Course{Id = 1, Name = "Math", Mark=80 },
-                        new Course{Id = 2, Name = "Science", Mark=80 },
-                        new Course{Id = 3, Name = "Literature", Mark=80 },
-                        new Course{Id = 4, Name = "Physichal Education", Mark=80 }
-                   }
-               },
-            new Student
-            {
-                Id = 3,
-                Courses = new Course[]
-                {
-                    new Course{Id = 1, Name = "Math", Mark=50 },
-                    new Course{Id = 2, Name = "Science", Mark=50 },
-                    new Course{Id = 3, Name = "Literature", Mark=50 },
-                    new Course{Id = 4, Name = "Physichal Education", Mark=50 }
-                }
-            },
-            new Student
-            {
-                Id = 4,
-                Courses = new Course[]
-                {
-                    new Course{Id = 1, Name = "Math", Mark=40 },
-                    new Course{Id = 2, Name = "Science", Mark=40 },
-                    new Course{Id = 3, Name = "Literature", Mark=40 },
-                    new Course{Id = 4, Name = "Physichal Education", Mark=40 }
-                }
-            }
-
-
-            //tracker.HasGraduated()
-        };
-            
-            var graduated = new List<Tuple<bool, STANDING>>();
-
-            foreach(var student in students)
-            {
-                graduated.Add(tracker.HasGraduated(diploma, student));      
-            }
-
-            
-            Assert.IsFalse(graduated.Any());
+            _tracker = new GraduationTracker(new Repository());
+            _diploma = SeedData.GetDiplomas();
+            _students = SeedData.GetStudents();
 
         }
+
+       
+
+        //REWRITING TestHasCredits FUNCTION
+        [TestMethod]
+        public void TestGraduationTracker_differentStudents_AddToList()
+        {
+            //Arrange -> SETUP METHOD
+
+            //Act
+            var graduated = new List<Tuple<bool, STANDING>>();
+            foreach (var student in _students)
+            {
+                graduated.Add(_tracker.HasGraduated(_diploma[0], student));
+            }
+            //Assert
+            Assert.IsNotNull(graduated);
+        }
+
+       
+        [TestMethod]
+        public void TestGraduationTracker_Bellow50_GetRemedial()
+        {
+            //Arrange -> setup method
+            //Act
+            Tuple<bool, STANDING> getResult = _tracker.HasGraduated(_diploma[0], _students[3]);
+            //Assert
+            Assert.IsTrue(getResult.Item2 == STANDING.Remedial);
+        }
+
+
+        [TestMethod]
+        public void TestGraduationTracker_Bellow80_GetAverage()
+        {
+            //Arrange 
+           
+            //Act
+            Tuple<bool, STANDING> getResult = _tracker.HasGraduated(_diploma[0], _students[2]);
+            //Assert
+            Assert.IsTrue(getResult.Item2 == STANDING.Average);
+        }
+
+        [TestMethod]
+        public void TestGraduationTracker_Bellow95_GetMagnaCumLaude()
+        {
+            //Arrange 
+            
+            //Act
+            Tuple<bool, STANDING> getResult = _tracker.HasGraduated(_diploma[0], _students[1]);
+            //Assert
+            Assert.IsTrue(getResult.Item2 == STANDING.MagnaCumLaude);
+        }
+
+        [TestMethod]
+        public void TestGraduationTracker_Over95_GetSumaCumLaude()
+        {
+            //Arrange 
+          
+            //Act
+            Tuple<bool, STANDING> getResult = _tracker.HasGraduated(_diploma[0], _students[0]);
+            //Assert
+            Assert.IsTrue(getResult.Item2 == STANDING.SumaCumLaude);
+
+        }
+
 
 
     }

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using GraduationTracker.Models;
+using GraduationTracker.Repositories;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,59 +9,58 @@ using System.Threading.Tasks;
 namespace GraduationTracker
 {
     public partial class GraduationTracker
-    {   
+    {
+       private IRepository _repository;
+        public GraduationTracker(IRepository repository)
+        {
+            _repository = repository;
+        }
+
         public Tuple<bool, STANDING>  HasGraduated(Diploma diploma, Student student)
         {
             var credits = 0;
-            var average = 0;
-        
-            for(int i = 0; i < diploma.Requirements.Length; i++)
+            int sumOfMarks = 0;
+            var requirementsForDiploma = diploma.Requirements;
+            Dictionary<int, int> CoursesIDCreaditToPassList = new Dictionary<int, int>();
+            foreach (var requiredId in requirementsForDiploma)
             {
-                for(int j = 0; j < student.Courses.Length; j++)
-                {
-                    var requirement = Repository.GetRequirement(diploma.Requirements[i]);
-
-                    for (int k = 0; k < requirement.Courses.Length; k++)
-                    {
-                        if (requirement.Courses[k] == student.Courses[j].Id)
-                        {
-                            average += student.Courses[j].Mark;
-                            if (student.Courses[j].Mark > requirement.MinimumMark)
-                            {
-                                credits += requirement.Credits;
-                            }
-                        }
-                    }
-                }
+                CoursesIDCreaditToPassList.Add(_repository.GetRequirement(requiredId).Courses[0], _repository.GetRequirement(requiredId).Credits);
             }
 
-            average = average / student.Courses.Length;
-
-            var standing = STANDING.None;
-
-            if (average < 50)
-                standing = STANDING.Remedial;
-            else if (average < 80)
-                standing = STANDING.Average;
-            else if (average < 95)
-                standing = STANDING.MagnaCumLaude;
-            else
-                standing = STANDING.MagnaCumLaude;
-
-            switch (standing)
+            List<int> CourseIDStudendHasPassed = new List<int>();
+            foreach (var course in student.Courses)
             {
-                case STANDING.Remedial:
-                    return new Tuple<bool, STANDING>(false, standing);
-                case STANDING.Average:
-                    return new Tuple<bool, STANDING>(true, standing);
-                case STANDING.SumaCumLaude:
-                    return new Tuple<bool, STANDING>(true, standing);
-                case STANDING.MagnaCumLaude:
-                    return new Tuple<bool, STANDING>(true, standing);
+                CourseIDStudendHasPassed.Add(course.Id);
+                sumOfMarks+=course.Mark ;
+                credits += CoursesIDCreaditToPassList.FirstOrDefault(x=>x.Key ==course.Id).Value;
+            }
 
+            if (CourseIDStudendHasPassed.All(CoursesIDCreaditToPassList.Keys.ToList().Contains)
+                && credits == diploma.Credits)
+            {
+              return  CalculateAverage(sumOfMarks, student.Courses.Length);
+            }
+
+            else
+                return new Tuple<bool, STANDING>(false, STANDING.Remedial);
+
+        }
+
+        public Tuple<bool, STANDING> CalculateAverage(int sum, int courseCount)
+        {
+            int average = sum / courseCount;
+            switch (average)
+            {
+                case var expression when average < 50:
+                    return new Tuple<bool, STANDING>(false, STANDING.Remedial);
+                case var expression when 50 <= average && average < 80:
+                    return new Tuple<bool, STANDING>(true, STANDING.Average);
+                case var expression when 80 <= average && average < 95:
+                    return new Tuple<bool, STANDING>(true, STANDING.MagnaCumLaude);
                 default:
-                    return new Tuple<bool, STANDING>(false, standing);
-            } 
+                    return new Tuple<bool, STANDING>(true, STANDING.SumaCumLaude);
+
+            }
         }
     }
 }
